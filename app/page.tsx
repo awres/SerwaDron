@@ -155,20 +155,7 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setScrolled(window.scrollY > 50);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // ... useEffect dla scrolla zostaje ...
 
   const navItems = [
     { label: "Usługi", id: "uslugi" },
@@ -183,16 +170,11 @@ function Navbar() {
     if (targetId) {
       const targetSection = document.getElementById(targetId);
       if (targetSection) {
-        targetSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        targetSection.scrollIntoView({ behavior: "smooth" });
       }
       window.history.replaceState(null, "", `#${targetId}`);
     } else {
-      const firstSection = document.querySelector("section");
-      if (firstSection) {
-        firstSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
       window.history.pushState(null, "", window.location.pathname);
     }
     setIsMenuOpen(false);
@@ -203,9 +185,11 @@ function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4"
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 pointer-events-none" // dodajemy pointer-events-none na wrapper
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto pointer-events-auto">
+        {" "}
+        {/* a tutaj przywracamy żeby guziki działały */}
         <div
           className={`flex items-center justify-between px-6 py-3 rounded-2xl transition-all duration-500 ${
             scrolled
@@ -283,7 +267,8 @@ function HeroSection() {
   return (
     <section
       ref={ref}
-      className="h-screen w-full relative flex flex-col justify-center overflow-hidden gpu-accelerated"
+      // USUNIĘTO: overflow-hidden
+      className="h-screen min-h-[100dvh] w-full relative flex flex-col justify-center gpu-accelerated overflow-clip"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -451,7 +436,8 @@ function ServicesSection() {
     <section
       id="uslugi"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 overflow-hidden gpu-accelerated"
+      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
+      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -586,7 +572,8 @@ function PortfolioSection() {
       <section
         id="portfolio"
         ref={ref}
-        className="min-h-screen w-full relative flex items-center py-16 overflow-hidden gpu-accelerated"
+        // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
+        className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
       >
         {/* Background image */}
         <div className="absolute inset-0">
@@ -728,7 +715,8 @@ function EquipmentSection() {
     <section
       id="sprzet"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 overflow-hidden"
+      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
+      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -925,7 +913,8 @@ function ContactSection() {
     <section
       id="kontakt"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 overflow-hidden"
+      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
+      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
       <div className="absolute inset-0">
