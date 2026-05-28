@@ -237,15 +237,25 @@ function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card/95 backdrop-blur-xl border border-border"
+            // ZMIANA TUTAJ: dodajemy z-50 i pełne, solidne tło bg-card (bez /95), żeby nic pod spodem go nie blokowało
+            className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => (
                 <a
                   key={item.id}
                   href={`#${item.id}`}
-                  onClick={(e) => handleNavClick(e, item.id)}
-                  className="text-base py-3 px-4 rounded-xl hover:bg-secondary text-foreground transition-colors cursor-pointer"
+                  // ZMIANA TUTAJ: zmieniamy e.preventDefault() na pełną obsługę, która na pewno zamknie menu
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMenuOpen(false); // Najpierw zamykamy menu, żeby nie wisiało
+                    const targetSection = document.getElementById(item.id);
+                    if (targetSection) {
+                      targetSection.scrollIntoView({ behavior: "smooth" });
+                    }
+                    window.history.replaceState(null, "", `#${item.id}`);
+                  }}
+                  className="text-base py-3 px-4 rounded-xl hover:bg-secondary text-foreground block w-full active:bg-secondary"
                 >
                   {item.label}
                 </a>
