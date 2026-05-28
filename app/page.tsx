@@ -270,13 +270,12 @@ function Navbar() {
 
 function HeroSection() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const isInView = useInView(ref, { once: true, amount: 0.1 });
 
   return (
     <section
       ref={ref}
-      // USUNIĘTO: overflow-hidden
-      className="h-screen min-h-[100dvh] w-full relative flex flex-col justify-center gpu-accelerated overflow-clip"
+      className="h-dvh w-full relative flex flex-col justify-center overflow-hidden" // usunięto gpu-accelerated, zmieniono na h-[100dvh]
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -320,7 +319,7 @@ function HeroSection() {
           >
             <span className="block text-foreground font-sans">Sztuka</span>
             <span
-              className="block bg-gradient-to-r from-primary via-blue-400 to-cyan-400 bg-clip-text text-transparent"
+              className="block bg-linear-to-r from-primary via-blue-400 to-cyan-400 bg-clip-text text-transparent"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               z lotu ptaka
@@ -355,7 +354,7 @@ function HeroSection() {
                 alt="DJI Mini 3 Pro"
                 width={500}
                 height={312}
-                className="mx-auto drop-shadow-[0_30px_60px_rgba(59,130,246,0.3)] w-full h-auto"
+                className="mx-auto w-full h-auto"
                 priority
               />
             </motion.div>
@@ -491,7 +490,7 @@ function ServicesSection() {
                 key={service.title}
                 variants={fadeInUp}
                 custom={idx}
-                className={`group border border-white/10 bg-gradient-to-br ${service.gradient} backdrop-blur-md rounded-2xl p-5 md:p-6 flex flex-col hover:border-cyan-400/50 transition-colors duration-200`}
+                className={`group border border-white/10 bg-card/90 md:bg-linear-to-br ${service.gradient} md:backdrop-blur-md rounded-2xl p-5 md:p-6 flex flex-col hover:border-cyan-400/50 transition-colors duration-200`}
               >
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white mb-4 group-hover:bg-white/20 transition-colors duration-200">
                   <service.icon className="w-5 h-5" />
@@ -853,7 +852,7 @@ function EquipmentSection() {
                   alt="DJI Mini 3 Pro"
                   width={500}
                   height={312}
-                  className="mx-auto drop-shadow-[0_40px_80px_rgba(59,130,246,0.35)] w-full h-auto relative z-10"
+                  className="mx-auto w-full h-auto"
                 />
               </motion.div>
             </motion.div>
