@@ -185,11 +185,9 @@ function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 pointer-events-none" // dodajemy pointer-events-none na wrapper
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4"
     >
-      <div className="max-w-6xl mx-auto pointer-events-auto">
-        {" "}
-        {/* a tutaj przywracamy żeby guziki działały */}
+      <div className="max-w-6xl mx-auto">
         <div
           className={`flex items-center justify-between px-6 py-3 rounded-2xl transition-all duration-500 ${
             scrolled
