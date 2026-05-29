@@ -233,12 +233,11 @@ function Navbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            // ZMIANA TUTAJ: dodajemy z-50 i pełne, solidne tło bg-card (bez /95), żeby nic pod spodem go nie blokowało
-            className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
+            // Zamiast: initial={{ opacity: 0, y: 50 }}
+            // Zmień na mniejszą wartość (tylko delikatny efekt), która nie rozbije układu:
+            initial={{ opacity: 0, y: 15 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => (
@@ -270,7 +269,7 @@ function Navbar() {
 
 function HeroSection() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.1 });
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
     <section
@@ -403,7 +402,7 @@ function HeroSection() {
 
 function ServicesSection() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const services = [
     {
@@ -702,7 +701,7 @@ function PortfolioSection() {
 
 function EquipmentSection() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const specs = [
     { value: "4K", label: "Wideo HDR" },
@@ -872,7 +871,7 @@ function EquipmentSection() {
 
 function ContactSection() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
