@@ -465,7 +465,7 @@ function ServicesSection() {
     <section
       id="uslugi"
       ref={ref}
-      className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
+      className="w-full relative min-h-screen flex flex-col justify-center py-24 scroll-mt-24 overflow-clip gpu-accelerated"
     >
       <div className="absolute inset-0">
         <Image
@@ -597,7 +597,7 @@ function PortfolioSection() {
       <section
         id="portfolio"
         ref={ref}
-        className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
+        className="w-full relative min-h-screen flex flex-col justify-center py-24 scroll-mt-24 overflow-clip gpu-accelerated"
       >
         <div className="absolute inset-0">
           <Image
@@ -732,7 +732,7 @@ function EquipmentSection() {
     <section
       id="sprzet"
       ref={ref}
-      className="w-full relative py-24 scroll-mt-24 overflow-clip"
+      className="w-full relative min-h-screen flex flex-col justify-center py-24 scroll-mt-24 overflow-clip"
     >
       <div className="absolute inset-0">
         <Image
@@ -960,7 +960,7 @@ function ContactSection() {
     <section
       id="kontakt"
       ref={ref}
-      className="w-full relative py-24 scroll-mt-24 overflow-clip"
+      className="w-full relative min-h-screen flex flex-col justify-center py-24 scroll-mt-24 overflow-clip"
     >
       <div className="absolute inset-0">
         <Image
