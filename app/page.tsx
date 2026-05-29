@@ -26,12 +26,8 @@ import {
 import Image from "next/image";
 
 // ─── Hook: czy jesteśmy na mobile ────────────────────────────────────────────
-// Kluczowy fix: na mobile wyłączamy WSZYSTKIE animacje wejścia (fadeIn, slideIn).
-// iOS Chrome ma niestabilny IntersectionObserver gdy viewport się zmienia
-// podczas scrolla (pasek adresu chowa/pokazuje się) — to główna przyczyna skoków.
-// Na desktop animacje działają normalnie.
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(true); // domyślnie true (SSR safe)
+  const [isMobile, setIsMobile] = useState(true);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -42,9 +38,6 @@ function useIsMobile() {
 }
 
 // ─── Warianty animacji ────────────────────────────────────────────────────────
-// Na mobile zwracamy wariant który od razu jest widoczny (no-op).
-// Na desktop — normalne animacje.
-
 const makeVariants = (isMobile: boolean) => ({
   fadeInUp: isMobile
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
@@ -294,8 +287,6 @@ function Navbar() {
 function HeroSection() {
   const isMobile = useIsMobile();
   const v = makeVariants(isMobile);
-  // Na hero używamy prostego mounted state zamiast useInView
-  // żeby uniknąć IntersectionObserver w ogóle dla pierwszej sekcji
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -420,8 +411,6 @@ function ServicesSection() {
   const isMobile = useIsMobile();
   const v = makeVariants(isMobile);
   const ref = useRef(null);
-  // amount: 0 — trigger jak tylko 1px sekcji wejdzie w widok, nie czeka na 10%
-  // rootMargin ujemny tylko na desktop — na mobile IntersectionObserver jest niestabilny
   const isInView = useInView(ref, {
     once: true,
     amount: isMobile ? 0 : 0.1,
@@ -799,7 +788,6 @@ function EquipmentSection() {
             variants={v.fadeInRight}
             className="relative"
           >
-            {/* Pierścienie i glow tylko na desktop */}
             <div className="hidden md:block">
               <motion.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-cyan-400/20"
@@ -842,10 +830,8 @@ function EquipmentSection() {
                 }}
               />
             </div>
-            {/* Statyczny glow na mobile */}
             <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-400/10 blur-[60px] rounded-full pointer-events-none" />
 
-            {/* Dron — na mobile tylko prosta animacja y, bez rotacji */}
             <motion.div
               animate={
                 isMobile
