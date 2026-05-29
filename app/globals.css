@@ -88,8 +88,6 @@
 
   html {
     scroll-behavior: smooth;
-    /* FIX: stabilizuje wysokość viewportu na iOS Safari/Chrome —
-       zapobiega przeliczaniu vh gdy pasek adresu się chowa/pokazuje */
     height: -webkit-fill-available;
   }
 
@@ -97,17 +95,12 @@
     overflow-x: hidden;
     min-height: 100vh;
     min-height: -webkit-fill-available;
-    /* FIX: blokuje gumowy efekt overscrolla który psuje useInView i
-       powoduje layout shift podczas szybkiego scrolla na iOS */
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
 }
 
-/* ─── GPU acceleration dla sekcji ───────────────────────────────────────────
-   Wymusza osobną warstwę kompozytora — animacje transform/opacity
-   nie triggerują reflow strony. Stosowane tylko na sekcjach z animacjami,
-   nie globalnie, żeby nie zabijać pamięci GPU na słabszych telefonach. */
+/* ─── GPU acceleration ───────────────────────────────────────────────────── */
 .gpu-accelerated {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -115,8 +108,38 @@
   -webkit-transform: translateZ(0);
 }
 
-/* ─── Static glow blobs (Services, Portfolio) ───────────────────────────────
-   Statyczne — bez animacji — żeby nie obciążać GPU na mobile */
+/* ─── Static gradients (w CSS żeby nie było inline style = zero re-renderów) */
+.hero-gradient {
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      oklch(0.45 0.18 250 / 0.3),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 60%,
+      oklch(0.5 0.12 280 / 0.1),
+      transparent
+    );
+}
+
+.equipment-gradient {
+  background: radial-gradient(
+    ellipse 100% 60% at 50% 50%,
+    oklch(0.3 0.1 250 / 0.1),
+    transparent
+  );
+}
+
+.contact-gradient {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% 100%,
+    oklch(0.35 0.15 250 / 0.15),
+    transparent
+  );
+}
+
+/* ─── Static glow blobs ──────────────────────────────────────────────────── */
 .glow-static {
   position: absolute;
   border-radius: 50%;
@@ -141,8 +164,7 @@
   right: -3%;
 }
 
-/* ─── Grid pattern overlay ───────────────────────────────────────────────────
-   Subtelna siatka na tle sekcji Services i Portfolio */
+/* ─── Grid pattern overlay ───────────────────────────────────────────────── */
 .grid-pattern {
   position: absolute;
   inset: 0;
@@ -158,8 +180,7 @@
   pointer-events: none;
 }
 
-/* ─── Modal backdrop ─────────────────────────────────────────────────────────
-   Używane przez VideoModal */
+/* ─── Modal backdrop ─────────────────────────────────────────────────────── */
 .modal-backdrop {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);

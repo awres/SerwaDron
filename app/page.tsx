@@ -25,55 +25,83 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-// Optimized animation variants - reduced motion for better performance
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
+// ─── Hook: czy jesteśmy na mobile ────────────────────────────────────────────
+// Kluczowy fix: na mobile wyłączamy WSZYSTKIE animacje wejścia (fadeIn, slideIn).
+// iOS Chrome ma niestabilny IntersectionObserver gdy viewport się zmienia
+// podczas scrolla (pasek adresu chowa/pokazuje się) — to główna przyczyna skoków.
+// Na desktop animacje działają normalnie.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(true); // domyślnie true (SSR safe)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check, { passive: true });
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
 
-const fadeInLeft: Variants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
+// ─── Warianty animacji ────────────────────────────────────────────────────────
+// Na mobile zwracamy wariant który od razu jest widoczny (no-op).
+// Na desktop — normalne animacje.
 
-const fadeInRight: Variants = {
-  hidden: { opacity: 0, x: 20 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
+const makeVariants = (isMobile: boolean) => ({
+  fadeInUp: isMobile
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
+    : ({
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.5, ease: "easeOut" },
+        },
+      } as Variants),
 
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-      delayChildren: 0.02,
-    },
-  },
-};
+  fadeInLeft: isMobile
+    ? { hidden: { opacity: 1, x: 0 }, visible: { opacity: 1, x: 0 } }
+    : ({
+        hidden: { opacity: 0, x: -20 },
+        visible: {
+          opacity: 1,
+          x: 0,
+          transition: { duration: 0.5, ease: "easeOut" },
+        },
+      } as Variants),
 
-const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.97 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
+  fadeInRight: isMobile
+    ? { hidden: { opacity: 1, x: 0 }, visible: { opacity: 1, x: 0 } }
+    : ({
+        hidden: { opacity: 0, x: 20 },
+        visible: {
+          opacity: 1,
+          x: 0,
+          transition: { duration: 0.5, ease: "easeOut" },
+        },
+      } as Variants),
 
-// Video Modal Component
+  scaleIn: isMobile
+    ? { hidden: { opacity: 1, scale: 1 }, visible: { opacity: 1, scale: 1 } }
+    : ({
+        hidden: { opacity: 0, scale: 0.97 },
+        visible: {
+          opacity: 1,
+          scale: 1,
+          transition: { duration: 0.4, ease: "easeOut" },
+        },
+      } as Variants),
+
+  staggerContainer: isMobile
+    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
+    : ({
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: 0.07, delayChildren: 0.02 },
+        },
+      } as Variants),
+});
+
+// ─── Video Modal ──────────────────────────────────────────────────────────────
 function VideoModal({
   isOpen,
   onClose,
@@ -86,11 +114,7 @@ function VideoModal({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -100,16 +124,12 @@ function VideoModal({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    if (isOpen) {
-      window.addEventListener("keydown", handleEscape);
-    }
+    if (isOpen) window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (isOpen && videoRef.current) {
-      videoRef.current.volume = 0.02;
-    }
+    if (isOpen && videoRef.current) videoRef.current.volume = 0.02;
   }, [isOpen, src]);
 
   return (
@@ -124,9 +144,9 @@ function VideoModal({
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -154,14 +174,13 @@ function VideoModal({
   );
 }
 
+// ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -173,15 +192,10 @@ function Navbar() {
     { label: "Kontakt", id: "kontakt" },
   ];
 
-  const handleNavClick = (e: React.MouseEvent, targetId: string | null) => {
-    e.preventDefault();
-
-    if (targetId) {
-      const targetSection = document.getElementById(targetId);
-      if (targetSection) {
-        targetSection.scrollIntoView({ behavior: "smooth" });
-      }
-      window.history.replaceState(null, "", `#${targetId}`);
+  const scrollTo = (id: string | null) => {
+    if (id) {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      window.history.replaceState(null, "", `#${id}`);
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
       window.history.pushState(null, "", window.location.pathname);
@@ -206,7 +220,10 @@ function Navbar() {
         >
           <a
             href="/"
-            onClick={(e) => handleNavClick(e, null)}
+            onClick={(e) => {
+              e.preventDefault();
+              scrollTo(null);
+            }}
             className="text-xl font-bold tracking-tight cursor-pointer text-foreground select-none"
             style={{ fontFamily: "var(--font-heading)" }}
           >
@@ -218,7 +235,10 @@ function Navbar() {
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                onClick={(e) => handleNavClick(e, item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollTo(item.id);
+                }}
                 className={`text-sm font-medium ${
                   i === 3
                     ? "bg-primary text-primary-foreground px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all duration-300"
@@ -242,10 +262,10 @@ function Navbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
             className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
           >
             <div className="flex flex-col gap-1">
@@ -255,12 +275,7 @@ function Navbar() {
                   href={`#${item.id}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsMenuOpen(false);
-                    const targetSection = document.getElementById(item.id);
-                    if (targetSection) {
-                      targetSection.scrollIntoView({ behavior: "smooth" });
-                    }
-                    window.history.replaceState(null, "", `#${item.id}`);
+                    scrollTo(item.id);
                   }}
                   className="text-base py-3 px-4 rounded-xl hover:bg-secondary text-foreground block w-full active:bg-secondary"
                 >
@@ -275,18 +290,19 @@ function Navbar() {
   );
 }
 
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 function HeroSection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isMobile = useIsMobile();
+  const v = makeVariants(isMobile);
+  // Na hero używamy prostego mounted state zamiast useInView
+  // żeby uniknąć IntersectionObserver w ogóle dla pierwszej sekcji
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <section
-      ref={ref}
-      // FIX: zamieniono h-dvh na h-screen z min-h - dvh powoduje skakanie
-      // gdy przeglądarka mobilna chowa/pokazuje pasek adresu
-      className="h-screen min-h-[600px] w-full relative flex flex-col justify-center overflow-hidden"
-    >
-      {/* Background image */}
+    <section className="h-screen min-h-[600px] w-full relative flex flex-col justify-center overflow-hidden">
       <div className="absolute inset-0">
         <Image
           src="/images/bg-hero.jpg"
@@ -297,22 +313,14 @@ function HeroSection() {
         />
         <div className="absolute inset-0 bg-background/70" />
       </div>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.45 0.18 250 / 0.3), transparent),
-            radial-gradient(ellipse 60% 40% at 80% 60%, oklch(0.50 0.12 280 / 0.1), transparent)
-          `,
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none hero-gradient" />
 
       <div className="relative z-10 w-full">
         <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center gap-6">
           <motion.div
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={fadeInUp}
+            animate={mounted ? "visible" : "hidden"}
+            variants={v.fadeInUp}
           >
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-foreground/80 uppercase bg-secondary/50 border border-border px-4 py-2 rounded-full">
               <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
@@ -322,8 +330,8 @@ function HeroSection() {
 
           <motion.h1
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={fadeInUp}
+            animate={mounted ? "visible" : "hidden"}
+            variants={v.fadeInUp}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-center leading-[1.1]"
           >
             <span className="block text-foreground font-sans">Sztuka</span>
@@ -337,8 +345,8 @@ function HeroSection() {
 
           <motion.p
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={fadeInUp}
+            animate={mounted ? "visible" : "hidden"}
+            variants={v.fadeInUp}
             className="text-sm md:text-base text-foreground/60 max-w-md text-center leading-relaxed"
           >
             Profesjonalne ujęcia lotnicze dla nieruchomości, eventów i projektów
@@ -348,14 +356,10 @@ function HeroSection() {
           <motion.div
             className="relative w-full max-w-sm md:max-w-md my-2"
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={scaleIn}
+            animate={mounted ? "visible" : "hidden"}
+            variants={v.scaleIn}
           >
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 bg-primary/25 blur-[80px] rounded-full pointer-events-none" />
-
-            {/* FIX: zmniejszona amplituda animacji na mobile żeby nie powodowała
-                reflow i skakania — translateY na elemencie wewnątrz sekcji
-                z overflow:hidden jest bezpieczny, ale mniejszy zakres = mniej pracy GPU */}
             <motion.div
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -374,8 +378,8 @@ function HeroSection() {
 
           <motion.div
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={fadeInUp}
+            animate={mounted ? "visible" : "hidden"}
+            variants={v.fadeInUp}
             className="flex flex-col sm:flex-row gap-3"
           >
             <a
@@ -384,8 +388,7 @@ function HeroSection() {
                 e.preventDefault();
                 document
                   .getElementById("portfolio")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                window.history.replaceState(null, "", "#portfolio");
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-all duration-200 text-sm shadow-lg shadow-primary/20"
             >
@@ -398,8 +401,7 @@ function HeroSection() {
                 e.preventDefault();
                 document
                   .getElementById("kontakt")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                window.history.replaceState(null, "", "#kontakt");
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className="inline-flex items-center justify-center gap-2 bg-secondary border border-border px-6 py-3 rounded-xl font-semibold hover:bg-accent transition-all duration-200 text-sm"
             >
@@ -413,9 +415,17 @@ function HeroSection() {
   );
 }
 
+// ─── Services ─────────────────────────────────────────────────────────────────
 function ServicesSection() {
+  const isMobile = useIsMobile();
+  const v = makeVariants(isMobile);
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  // amount: 0 — trigger jak tylko 1px sekcji wejdzie w widok, nie czeka na 10%
+  // rootMargin ujemny tylko na desktop — na mobile IntersectionObserver jest niestabilny
+  const isInView = useInView(ref, {
+    once: true,
+    amount: isMobile ? 0 : 0.1,
+  });
 
   const services = [
     {
@@ -455,11 +465,8 @@ function ServicesSection() {
     <section
       id="uslugi"
       ref={ref}
-      // FIX: min-h-screen + flex items-center → stały padding. iOS Chrome
-      // dynamicznie zmienia 100vh podczas scrolla co powoduje layout shift.
       className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
     >
-      {/* Background image */}
       <div className="absolute inset-0">
         <Image
           src="/images/bg-services.jpg"
@@ -469,22 +476,18 @@ function ServicesSection() {
         />
         <div className="absolute inset-0 bg-background/80" />
       </div>
-
-      {/* Static glow effects */}
       <div className="glow-static glow-static-1" />
       <div className="glow-static glow-static-2" />
-
-      {/* Grid pattern overlay */}
       <div className="grid-pattern" />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
         <motion.div
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
+          variants={v.staggerContainer}
           className="flex flex-col gap-10"
         >
-          <motion.div variants={fadeInUp} className="text-center">
+          <motion.div variants={v.fadeInUp} className="text-center">
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
               <Sparkles className="w-4 h-4" />
               Co oferuję
@@ -498,11 +501,10 @@ function ServicesSection() {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {services.map((service, idx) => (
+            {services.map((service) => (
               <motion.div
                 key={service.title}
-                variants={fadeInUp}
-                custom={idx}
+                variants={v.fadeInUp}
                 className={`group border border-white/10 bg-card/90 md:bg-linear-to-br ${service.gradient} md:backdrop-blur-md rounded-2xl p-5 md:p-6 flex flex-col hover:border-cyan-400/50 transition-colors duration-200`}
               >
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white mb-4 group-hover:bg-white/20 transition-colors duration-200">
@@ -522,7 +524,7 @@ function ServicesSection() {
           </div>
 
           <motion.div
-            variants={fadeInUp}
+            variants={v.fadeInUp}
             className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/10"
           >
             {stats.map((stat) => (
@@ -543,9 +545,12 @@ function ServicesSection() {
   );
 }
 
+// ─── Portfolio ────────────────────────────────────────────────────────────────
 function PortfolioSection() {
+  const isMobile = useIsMobile();
+  const v = makeVariants(isMobile);
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const isInView = useInView(ref, { once: true, amount: isMobile ? 0 : 0.1 });
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState("");
 
@@ -565,21 +570,21 @@ function PortfolioSection() {
       src: "/videos/dron.mp4",
       title: "Prezentacja posiadłości",
       cat: "Nieruchomości",
-      gradient: "from-teal-600/40",
     },
-    { title: "Festiwal muzyczny", cat: "Eventy", gradient: "from-blue-600/40" },
-    { title: "Górski szlak", cat: "Krajobraz", gradient: "from-indigo-600/40" },
-    {
-      title: "Nowoczesna willa",
-      cat: "Nieruchomości",
-      gradient: "from-purple-600/40",
-    },
-    { title: "Wesele w plenerze", cat: "Eventy", gradient: "from-pink-600/40" },
-    {
-      title: "Miejska panorama",
-      cat: "Krajobraz",
-      gradient: "from-cyan-600/40",
-    },
+    { title: "Festiwal muzyczny", cat: "Eventy" },
+    { title: "Górski szlak", cat: "Krajobraz" },
+    { title: "Nowoczesna willa", cat: "Nieruchomości" },
+    { title: "Wesele w plenerze", cat: "Eventy" },
+    { title: "Miejska panorama", cat: "Krajobraz" },
+  ];
+
+  const gradients = [
+    "from-teal-600/40",
+    "from-blue-600/40",
+    "from-indigo-600/40",
+    "from-purple-600/40",
+    "from-pink-600/40",
+    "from-cyan-600/40",
   ];
 
   return (
@@ -594,7 +599,6 @@ function PortfolioSection() {
         ref={ref}
         className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
       >
-        {/* Background image */}
         <div className="absolute inset-0">
           <Image
             src="/images/bg-portfolio.jpg"
@@ -604,8 +608,6 @@ function PortfolioSection() {
           />
           <div className="absolute inset-0 bg-background/80" />
         </div>
-
-        {/* Static glow effects */}
         <div
           className="glow-static glow-static-1"
           style={{ top: "15%", right: "5%", left: "auto" }}
@@ -614,18 +616,16 @@ function PortfolioSection() {
           className="glow-static glow-static-2"
           style={{ bottom: "10%", left: "10%", right: "auto" }}
         />
-
-        {/* Grid pattern overlay */}
         <div className="grid-pattern" />
 
         <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
           <motion.div
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            variants={staggerContainer}
+            variants={v.staggerContainer}
             className="flex flex-col gap-8"
           >
-            <motion.div variants={fadeInUp} className="text-center">
+            <motion.div variants={v.fadeInUp} className="text-center">
               <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
                 <Camera className="w-4 h-4" />
                 Realizacje
@@ -642,41 +642,33 @@ function PortfolioSection() {
               {items.map((item, idx) => (
                 <motion.div
                   key={idx}
-                  variants={fadeInUp}
-                  custom={idx}
-                  className="border border-white/10 rounded-2xl relative overflow-hidden bg-linear-to-b from-teal-600/40 to-card p-5 h-36 md:h-44 flex flex-col justify-end group cursor-pointer hover:border-cyan-400/50 transition-colors duration-200"
+                  variants={v.fadeInUp}
+                  className={`border border-white/10 rounded-2xl relative overflow-hidden bg-linear-to-b ${gradients[idx]} to-card p-5 h-36 md:h-44 flex flex-col justify-end group cursor-pointer hover:border-cyan-400/50 transition-colors duration-200`}
                   onClick={() =>
                     item.type === "video" &&
                     item.src &&
                     openVideoModal(item.src)
                   }
                 >
-                  {item.type === "video" && (
+                  {item.type === "video" && item.src && (
                     <video
                       src={item.src}
                       autoPlay
                       loop
                       muted
                       playsInline
-                      // FIX: will-change i transform3d przenoszą wideo na osobną
-                      // warstwę GPU co eliminuje "migotanie" przy scrollu na iOS
-                      className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                      className="absolute inset-0 w-full h-full object-cover"
                       style={{ transform: "translateZ(0)" }}
                     />
                   )}
-
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
-
-                  {item.type === "video" ? (
-                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                    {item.type === "video" ? (
                       <Maximize2 className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  ) : (
-                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                    ) : (
                       <Play className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-
+                    )}
+                  </div>
                   <div className="relative z-10">
                     <span className="text-xs uppercase font-bold tracking-wider text-cyan-400">
                       {item.cat}
@@ -692,15 +684,14 @@ function PortfolioSection() {
               ))}
             </div>
 
-            <motion.div variants={fadeInUp} className="text-center">
+            <motion.div variants={v.fadeInUp} className="text-center">
               <a
                 href="#kontakt"
                 onClick={(e) => {
                   e.preventDefault();
                   document
                     .getElementById("kontakt")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  window.history.replaceState(null, "", "#kontakt");
+                    ?.scrollIntoView({ behavior: "smooth" });
                 }}
                 className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-semibold group"
               >
@@ -715,13 +706,13 @@ function PortfolioSection() {
   );
 }
 
+// ─── Equipment ────────────────────────────────────────────────────────────────
 function EquipmentSection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  // FIX: useReducedMotion wyłącza ciągłe animacje na urządzeniach które tego
-  // chcą (accessibility), ale też zmniejsza obciążenie GPU na słabszych telefonach.
-  // Użyjemy go dodatkowo do wyłączenia kosztownych animacji pierścieni na mobile.
+  const isMobile = useIsMobile();
+  const v = makeVariants(isMobile);
   const shouldReduce = useReducedMotion();
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: isMobile ? 0 : 0.1 });
 
   const specs = [
     { value: "4K", label: "Wideo HDR" },
@@ -743,7 +734,6 @@ function EquipmentSection() {
       ref={ref}
       className="w-full relative py-24 scroll-mt-24 overflow-clip"
     >
-      {/* Background image */}
       <div className="absolute inset-0">
         <Image
           src="/images/bg-equipment.jpg"
@@ -753,20 +743,14 @@ function EquipmentSection() {
         />
         <div className="absolute inset-0 bg-background/85" />
       </div>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 60% at 50% 50%, oklch(0.30 0.10 250 / 0.1), transparent)",
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none equipment-gradient" />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <motion.div
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            variants={fadeInLeft}
+            variants={v.fadeInLeft}
           >
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
               <Camera className="w-4 h-4" />
@@ -778,13 +762,11 @@ function EquipmentSection() {
             >
               DJI Mini 3 <span className="text-cyan-400">Pro</span>
             </h2>
-
             <p className="text-white/70 leading-relaxed mb-8 text-sm md:text-base">
               Kompaktowy dron o profesjonalnych możliwościach. Idealny do ujęć w
               trudno dostępnych miejscach, z zachowaniem najwyższej jakości
               obrazu.
             </p>
-
             <div className="grid grid-cols-4 gap-3 mb-8">
               {specs.map((spec) => (
                 <div
@@ -801,7 +783,6 @@ function EquipmentSection() {
                 </div>
               ))}
             </div>
-
             <div className="grid grid-cols-2 gap-2">
               {features.map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm">
@@ -815,49 +796,16 @@ function EquipmentSection() {
           <motion.div
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            variants={fadeInRight}
+            variants={v.fadeInRight}
             className="relative"
           >
-            {/* FIX: Animowane pierścienie tylko na desktop (ukryte na mobile przez
-                klasę hidden md:block) - eliminuje kosztowne ciągłe animacje
-                scale+opacity na słabszych GPU telefonów */}
+            {/* Pierścienie i glow tylko na desktop */}
             <div className="hidden md:block">
               <motion.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-cyan-400/20"
                 animate={
                   !shouldReduce
-                    ? { scale: [1, 1.1, 1], opacity: [0.3, 0.1, 0.3] }
-                    : {}
-                }
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border border-cyan-400/30"
-                animate={
-                  !shouldReduce
-                    ? { scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }
-                    : {}
-                }
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-              />
-            </div>
-
-            {/* FIX: Animowany glow tylko na desktop */}
-            <div className="hidden md:block">
-              <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/20 blur-[100px] rounded-full pointer-events-none"
-                animate={
-                  !shouldReduce
-                    ? { scale: [1, 1.1, 1], opacity: [0.2, 0.35, 0.2] }
+                    ? { scale: [1, 1.08, 1], opacity: [0.3, 0.1, 0.3] }
                     : {}
                 }
                 transition={{
@@ -866,63 +814,82 @@ function EquipmentSection() {
                   ease: "easeInOut",
                 }}
               />
-            </div>
-
-            {/* Statyczny glow na mobile zamiast animowanego */}
-            <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-400/15 blur-[60px] rounded-full pointer-events-none" />
-
-            {/* FIX: Dron - zmniejszona amplituda animacji y i uproszczone rotacje
-                na mobile. rotateX i rotateZ wymagają perspective i mogą
-                powodować repaints na telefonach */}
-            <motion.div
-              animate={
-                !shouldReduce
-                  ? {
-                      y: [0, -10, 0],
-                      rotateZ: [0, 1, 0, -1, 0],
-                      rotateX: [0, 2, 0, -2, 0],
-                    }
-                  : { y: [0, -6, 0] }
-              }
-              transition={
-                !shouldReduce
-                  ? {
-                      y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                      rotateZ: {
-                        duration: 6,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      },
-                      rotateX: {
-                        duration: 5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      },
-                    }
-                  : { y: { duration: 3, repeat: Infinity, ease: "easeInOut" } }
-              }
-              style={{ perspective: "1000px" }}
-            >
               <motion.div
-                animate={!shouldReduce ? { scale: [1, 1.02, 1] } : {}}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border border-cyan-400/30"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 1.12, 1], opacity: [0.4, 0.15, 0.4] }
+                    : {}
+                }
                 transition={{
-                  duration: 3,
+                  duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.2,
+                  delay: 0.5,
                 }}
-              >
-                <Image
-                  src="/images/drone.png"
-                  alt="DJI Mini 3 Pro"
-                  width={500}
-                  height={312}
-                  className="mx-auto w-full h-auto"
-                />
-              </motion.div>
+              />
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/20 blur-[100px] rounded-full pointer-events-none"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 1.08, 1], opacity: [0.2, 0.35, 0.2] }
+                    : {}
+                }
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+            {/* Statyczny glow na mobile */}
+            <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-400/10 blur-[60px] rounded-full pointer-events-none" />
+
+            {/* Dron — na mobile tylko prosta animacja y, bez rotacji */}
+            <motion.div
+              animate={
+                isMobile
+                  ? { y: [0, -6, 0] }
+                  : !shouldReduce
+                    ? {
+                        y: [0, -10, 0],
+                        rotateZ: [0, 1, 0, -1, 0],
+                        rotateX: [0, 2, 0, -2, 0],
+                      }
+                    : { y: [0, -6, 0] }
+              }
+              transition={
+                isMobile
+                  ? { y: { duration: 3, repeat: Infinity, ease: "easeInOut" } }
+                  : !shouldReduce
+                    ? {
+                        y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                        rotateZ: {
+                          duration: 6,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        },
+                        rotateX: {
+                          duration: 5,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        },
+                      }
+                    : {
+                        y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                      }
+              }
+              style={isMobile ? {} : { perspective: "1000px" }}
+            >
+              <Image
+                src="/images/drone.png"
+                alt="DJI Mini 3 Pro"
+                width={500}
+                height={312}
+                className="mx-auto w-full h-auto"
+              />
             </motion.div>
 
-            {/* FIX: Cień tylko na desktop */}
             <div className="hidden md:block">
               <motion.div
                 className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-black/20 blur-xl rounded-full"
@@ -945,9 +912,13 @@ function EquipmentSection() {
   );
 }
 
+// ─── Contact ──────────────────────────────────────────────────────────────────
 function ContactSection() {
+  const isMobile = useIsMobile();
+  const v = makeVariants(isMobile);
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, amount: isMobile ? 0 : 0.1 });
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -963,20 +934,14 @@ function ContactSection() {
     e.preventDefault();
     setStatus("loading");
     setErrorMessage("");
-
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Wystąpił błąd");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Wystąpił błąd");
       setStatus("success");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
@@ -995,13 +960,8 @@ function ContactSection() {
     <section
       id="kontakt"
       ref={ref}
-      // FIX: zamieniono min-h-screen na py-24 + stałą wysokość contentu.
-      // min-h-screen na iOS Chrome zmienia się podczas scrolla gdy
-      // przeglądarka chowa/pokazuje pasek adresu → layout shift.
-      // Sekcja ma teraz stały padding zamiast dynamicznej wysokości.
       className="w-full relative py-24 scroll-mt-24 overflow-clip"
     >
-      {/* Background image */}
       <div className="absolute inset-0">
         <Image
           src="/images/bg-contact.jpg"
@@ -1011,21 +971,15 @@ function ContactSection() {
         />
         <div className="absolute inset-0 bg-background/85" />
       </div>
-      {/* FIX: statyczny gradient bez inline style - unika re-renderu przy zmianie stanu */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_50%_at_50%_100%,oklch(0.35_0.15_250_/_0.15),transparent)]" />
+      <div className="absolute inset-0 pointer-events-none contact-gradient" />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
-        {/* FIX: zastąpiono motion.div z animate={isInView ? ...} na
-            variants + initial/animate — triggeruje animację tylko raz
-            i nie powoduje re-layoutu przy zmianie isInView podczas scrolla */}
         <motion.div
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="max-w-6xl mx-auto"
+          variants={v.staggerContainer}
         >
-          {/* FIX: variants={fadeInUp} teraz ma rodzica który je kontroluje */}
-          <motion.div variants={fadeInUp} className="text-center mb-10">
+          <motion.div variants={v.fadeInUp} className="text-center mb-10">
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
               <Mail className="w-4 h-4" />
               Kontakt
@@ -1043,7 +997,7 @@ function ContactSection() {
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-8">
-            <motion.div variants={fadeInLeft}>
+            <motion.div variants={v.fadeInLeft}>
               <form
                 onSubmit={handleSubmit}
                 className="flex flex-col gap-4 p-6 md:p-8 rounded-2xl bg-white/8 md:bg-white/5 md:backdrop-blur-md border border-white/10"
@@ -1131,55 +1085,51 @@ function ContactSection() {
             </motion.div>
 
             <motion.div
-              variants={fadeInRight}
+              variants={v.fadeInRight}
               className="flex flex-col justify-center gap-6"
             >
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="w-12 h-12 rounded-xl bg-cyan-400/20 flex items-center justify-center text-cyan-400">
-                  <Mail className="w-5 h-5" />
+              {[
+                {
+                  icon: Mail,
+                  label: "Email",
+                  value: "filserw@gmail.com",
+                  href: "mailto:filserw@gmail.com",
+                },
+                {
+                  icon: Phone,
+                  label: "Telefon",
+                  value: "+48 509 121 200",
+                  href: "tel:+48509121200",
+                },
+                {
+                  icon: Instagram,
+                  label: "Instagram",
+                  value: "@awres777",
+                  href: "https://instagram.com/awres777",
+                  external: true,
+                },
+              ].map(({ icon: Icon, label, value, href, external }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-cyan-400/20 flex items-center justify-center text-cyan-400">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/50 mb-1">{label}</div>
+                    <a
+                      href={href}
+                      {...(external
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                      className="text-white hover:text-cyan-400 transition-colors font-medium text-sm"
+                    >
+                      {value}
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-white/50 mb-1">Email</div>
-                  <a
-                    href="mailto:filserw@gmail.com"
-                    className="text-white hover:text-cyan-400 transition-colors font-medium text-sm"
-                  >
-                    filserw@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="w-12 h-12 rounded-xl bg-cyan-400/20 flex items-center justify-center text-cyan-400">
-                  <Phone className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs text-white/50 mb-1">Telefon</div>
-                  <a
-                    href="tel:+48509121200"
-                    className="text-white hover:text-cyan-400 transition-colors font-medium text-sm"
-                  >
-                    +48 509 121 200
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="w-12 h-12 rounded-xl bg-cyan-400/20 flex items-center justify-center text-cyan-400">
-                  <Instagram className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs text-white/50 mb-1">Instagram</div>
-                  <a
-                    href="https://instagram.com/awres777"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white hover:text-cyan-400 transition-colors font-medium text-sm"
-                  >
-                    @awres777
-                  </a>
-                </div>
-              </div>
+              ))}
             </motion.div>
           </div>
         </motion.div>
@@ -1188,6 +1138,7 @@ function ContactSection() {
   );
 }
 
+// ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
   return (
     <footer className="py-8 border-t border-white/10 bg-background">
@@ -1208,6 +1159,7 @@ function Footer() {
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Page() {
   return (
     <main className="bg-background text-foreground overflow-x-hidden">
