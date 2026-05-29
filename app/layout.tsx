@@ -12,10 +12,6 @@ export const metadata: Metadata = {
   title: "SerwaDron - Profesjonalne uslugi dronowe",
   description:
     "Profesjonalne ujecia lotnicze dla nieruchomosci, eventow i projektow kreatywnych. Fotografia i filmowanie dronem DJI Mini 3 Pro.",
-  // Dodaj to tutaj:
-  verification: {
-    google: "AVn6swcv3Wibjqw18Z7kivD0HHPlXXkKS7zbhgnaeWQ",
-  },
 };
 
 export default function RootLayout({

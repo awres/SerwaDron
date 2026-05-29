@@ -455,7 +455,9 @@ function ServicesSection() {
     <section
       id="uslugi"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
+      // FIX: min-h-screen + flex items-center → stały padding. iOS Chrome
+      // dynamicznie zmienia 100vh podczas scrolla co powoduje layout shift.
+      className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -590,7 +592,7 @@ function PortfolioSection() {
       <section
         id="portfolio"
         ref={ref}
-        className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
+        className="w-full relative py-24 scroll-mt-24 overflow-clip gpu-accelerated"
       >
         {/* Background image */}
         <div className="absolute inset-0">
@@ -739,7 +741,7 @@ function EquipmentSection() {
     <section
       id="sprzet"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
+      className="w-full relative py-24 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -993,7 +995,11 @@ function ContactSection() {
     <section
       id="kontakt"
       ref={ref}
-      className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
+      // FIX: zamieniono min-h-screen na py-24 + stałą wysokość contentu.
+      // min-h-screen na iOS Chrome zmienia się podczas scrolla gdy
+      // przeglądarka chowa/pokazuje pasek adresu → layout shift.
+      // Sekcja ma teraz stały padding zamiast dynamicznej wysokości.
+      className="w-full relative py-24 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -1005,21 +1011,20 @@ function ContactSection() {
         />
         <div className="absolute inset-0 bg-background/85" />
       </div>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% 100%, oklch(0.35 0.15 250 / 0.15), transparent)",
-        }}
-      />
+      {/* FIX: statyczny gradient bez inline style - unika re-renderu przy zmianie stanu */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_50%_at_50%_100%,oklch(0.35_0.15_250_/_0.15),transparent)]" />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
+        {/* FIX: zastąpiono motion.div z animate={isInView ? ...} na
+            variants + initial/animate — triggeruje animację tylko raz
+            i nie powoduje re-layoutu przy zmianie isInView podczas scrolla */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-6xl mx-auto px-4"
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          variants={staggerContainer}
+          className="max-w-6xl mx-auto"
         >
+          {/* FIX: variants={fadeInUp} teraz ma rodzica który je kontroluje */}
           <motion.div variants={fadeInUp} className="text-center mb-10">
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
               <Mail className="w-4 h-4" />
