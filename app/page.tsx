@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { motion, useInView, AnimatePresence, Variants } from "framer-motion";
+import {
+  motion,
+  useInView,
+  AnimatePresence,
+  Variants,
+  useReducedMotion,
+} from "framer-motion";
 import {
   ArrowRight,
   Camera,
@@ -77,7 +83,6 @@ function VideoModal({
   onClose: () => void;
   src: string;
 }) {
-  // 1. Definiujemy referencję dla elementu wideo
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -101,10 +106,8 @@ function VideoModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  // 2. Hook ustawiający głośność po otwarciu i załadowaniu wideo
   useEffect(() => {
     if (isOpen && videoRef.current) {
-      // 0.15 = 15% głośności. Zmień na np. 0.1, jeśli wciąż ma być ciszej
       videoRef.current.volume = 0.02;
     }
   }, [isOpen, src]);
@@ -130,13 +133,13 @@ function VideoModal({
           >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
               aria-label="Zamknij"
             >
               <X className="w-5 h-5" />
             </button>
             <video
-              ref={videoRef} // 3. Podpięcie referencji pod element video
+              ref={videoRef}
               src={src}
               autoPlay
               loop
@@ -155,7 +158,13 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // ... useEffect dla scrolla zostaje ...
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navItems = [
     { label: "Usługi", id: "uslugi" },
@@ -191,7 +200,7 @@ function Navbar() {
         <div
           className={`flex items-center justify-between px-6 py-3 rounded-2xl transition-all duration-500 ${
             scrolled
-              ? "bg-card/80 backdrop-blur-xl border border-border shadow-2xl"
+              ? "bg-card/95 md:bg-card/80 md:backdrop-blur-xl border border-border shadow-2xl"
               : "bg-transparent"
           }`}
         >
@@ -237,7 +246,6 @@ function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            // ZMIANA TUTAJ: dodajemy z-50 i pełne, solidne tło bg-card (bez /95), żeby nic pod spodem go nie blokowało
             className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
           >
             <div className="flex flex-col gap-1">
@@ -245,10 +253,9 @@ function Navbar() {
                 <a
                   key={item.id}
                   href={`#${item.id}`}
-                  // ZMIANA TUTAJ: zmieniamy e.preventDefault() na pełną obsługę, która na pewno zamknie menu
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsMenuOpen(false); // Najpierw zamykamy menu, żeby nie wisiało
+                    setIsMenuOpen(false);
                     const targetSection = document.getElementById(item.id);
                     if (targetSection) {
                       targetSection.scrollIntoView({ behavior: "smooth" });
@@ -275,7 +282,9 @@ function HeroSection() {
   return (
     <section
       ref={ref}
-      className="h-dvh w-full relative flex flex-col justify-center overflow-hidden" // usunięto gpu-accelerated, zmieniono na h-[100dvh]
+      // FIX: zamieniono h-dvh na h-screen z min-h - dvh powoduje skakanie
+      // gdy przeglądarka mobilna chowa/pokazuje pasek adresu
+      className="h-screen min-h-[600px] w-full relative flex flex-col justify-center overflow-hidden"
     >
       {/* Background image */}
       <div className="absolute inset-0">
@@ -305,7 +314,7 @@ function HeroSection() {
             animate={isInView ? "visible" : "hidden"}
             variants={fadeInUp}
           >
-            <span className="inline-flex items-center gap-2 text-xs tracking-widest text-foreground/80 uppercase bg-secondary/50 backdrop-blur-sm border border-border px-4 py-2 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs tracking-widest text-foreground/80 uppercase bg-secondary/50 border border-border px-4 py-2 rounded-full">
               <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
               DJI Mini 3 Pro
             </span>
@@ -344,8 +353,11 @@ function HeroSection() {
           >
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 bg-primary/25 blur-[80px] rounded-full pointer-events-none" />
 
+            {/* FIX: zmniejszona amplituda animacji na mobile żeby nie powodowała
+                reflow i skakania — translateY na elemencie wewnątrz sekcji
+                z overflow:hidden jest bezpieczny, ale mniejszy zakres = mniej pracy GPU */}
             <motion.div
-              animate={{ y: [0, -10, 0] }}
+              animate={{ y: [0, -8, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               className="relative z-10"
             >
@@ -443,7 +455,6 @@ function ServicesSection() {
     <section
       id="uslugi"
       ref={ref}
-      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
       className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
     >
       {/* Background image */}
@@ -579,7 +590,6 @@ function PortfolioSection() {
       <section
         id="portfolio"
         ref={ref}
-        // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
         className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip gpu-accelerated"
       >
         {/* Background image */}
@@ -646,18 +656,21 @@ function PortfolioSection() {
                       loop
                       muted
                       playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
+                      // FIX: will-change i transform3d przenoszą wideo na osobną
+                      // warstwę GPU co eliminuje "migotanie" przy scrollu na iOS
+                      className="absolute inset-0 w-full h-full object-cover will-change-transform"
+                      style={{ transform: "translateZ(0)" }}
                     />
                   )}
 
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
 
                   {item.type === "video" ? (
-                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                       <Maximize2 className="w-3.5 h-3.5 text-white" />
                     </div>
                   ) : (
-                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                       <Play className="w-3 h-3 text-white" />
                     </div>
                   )}
@@ -703,6 +716,10 @@ function PortfolioSection() {
 function EquipmentSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  // FIX: useReducedMotion wyłącza ciągłe animacje na urządzeniach które tego
+  // chcą (accessibility), ale też zmniejsza obciążenie GPU na słabszych telefonach.
+  // Użyjemy go dodatkowo do wyłączenia kosztownych animacji pierścieni na mobile.
+  const shouldReduce = useReducedMotion();
 
   const specs = [
     { value: "4K", label: "Wideo HDR" },
@@ -722,7 +739,6 @@ function EquipmentSection() {
     <section
       id="sprzet"
       ref={ref}
-      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
       className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
@@ -800,46 +816,93 @@ function EquipmentSection() {
             variants={fadeInRight}
             className="relative"
           >
-            {/* Animated glow rings */}
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-cyan-400/20"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.1, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border border-cyan-400/30"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.5,
-              }}
-            />
+            {/* FIX: Animowane pierścienie tylko na desktop (ukryte na mobile przez
+                klasę hidden md:block) - eliminuje kosztowne ciągłe animacje
+                scale+opacity na słabszych GPU telefonów */}
+            <div className="hidden md:block">
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-cyan-400/20"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 1.1, 1], opacity: [0.3, 0.1, 0.3] }
+                    : {}
+                }
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border border-cyan-400/30"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }
+                    : {}
+                }
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5,
+                }}
+              />
+            </div>
 
-            {/* Main glow */}
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/20 blur-[100px] rounded-full pointer-events-none"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.35, 0.2] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
+            {/* FIX: Animowany glow tylko na desktop */}
+            <div className="hidden md:block">
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/20 blur-[100px] rounded-full pointer-events-none"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 1.1, 1], opacity: [0.2, 0.35, 0.2] }
+                    : {}
+                }
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
 
-            {/* Drone with complex animation */}
+            {/* Statyczny glow na mobile zamiast animowanego */}
+            <div className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-400/15 blur-[60px] rounded-full pointer-events-none" />
+
+            {/* FIX: Dron - zmniejszona amplituda animacji y i uproszczone rotacje
+                na mobile. rotateX i rotateZ wymagają perspective i mogą
+                powodować repaints na telefonach */}
             <motion.div
-              animate={{
-                y: [0, -12, 0],
-                rotateZ: [0, 1, 0, -1, 0],
-                rotateX: [0, 2, 0, -2, 0],
-              }}
-              transition={{
-                y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                rotateZ: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-                rotateX: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-              }}
+              animate={
+                !shouldReduce
+                  ? {
+                      y: [0, -10, 0],
+                      rotateZ: [0, 1, 0, -1, 0],
+                      rotateX: [0, 2, 0, -2, 0],
+                    }
+                  : { y: [0, -6, 0] }
+              }
+              transition={
+                !shouldReduce
+                  ? {
+                      y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                      rotateZ: {
+                        duration: 6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      },
+                      rotateX: {
+                        duration: 5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      },
+                    }
+                  : { y: { duration: 3, repeat: Infinity, ease: "easeInOut" } }
+              }
               style={{ perspective: "1000px" }}
             >
               <motion.div
-                animate={{ scale: [1, 1.02, 1] }}
+                animate={!shouldReduce ? { scale: [1, 1.02, 1] } : {}}
                 transition={{
                   duration: 3,
                   repeat: Infinity,
@@ -857,12 +920,22 @@ function EquipmentSection() {
               </motion.div>
             </motion.div>
 
-            {/* Shadow on the ground */}
-            <motion.div
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-black/20 blur-xl rounded-full"
-              animate={{ scale: [1, 0.9, 1], opacity: [0.3, 0.2, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
+            {/* FIX: Cień tylko na desktop */}
+            <div className="hidden md:block">
+              <motion.div
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-black/20 blur-xl rounded-full"
+                animate={
+                  !shouldReduce
+                    ? { scale: [1, 0.9, 1], opacity: [0.3, 0.2, 0.3] }
+                    : {}
+                }
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
           </motion.div>
         </div>
       </div>
@@ -920,7 +993,6 @@ function ContactSection() {
     <section
       id="kontakt"
       ref={ref}
-      // DODANO: scroll-mt-24 (margines na navbar), ZMIENIONO overflow
       className="min-h-screen w-full relative flex items-center py-16 scroll-mt-24 overflow-clip"
     >
       {/* Background image */}
@@ -942,14 +1014,13 @@ function ContactSection() {
       />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
-        {/* KROK 2: TUTAJ ZMIENIASZ PARAMETRY INITIAL I ANIMATE */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }} // Zmienione z 50 na 15
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }} // Zmienione z 50 na 15
+          initial={{ opacity: 0, y: 15 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="max-w-6xl mx-auto px-4"
         >
-          <motion.div variants={fadeInUp} className="text-center">
+          <motion.div variants={fadeInUp} className="text-center mb-10">
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
               <Mail className="w-4 h-4" />
               Kontakt
@@ -961,7 +1032,7 @@ function ContactSection() {
               Rozpocznijmy <span className="text-cyan-400">współpracę</span>
             </h2>
             <p className="text-white/70 max-w-lg mx-auto text-sm md:text-base">
-              Masz projekt? Chętnie omówię szczegóły i przygotują wycenę
+              Masz projekt? Chętnie omówię szczegóły i przygotuję wycenę
               dopasowaną do Twoich potrzeb.
             </p>
           </motion.div>
@@ -970,7 +1041,7 @@ function ContactSection() {
             <motion.div variants={fadeInLeft}>
               <form
                 onSubmit={handleSubmit}
-                className="flex flex-col gap-4 p-6 md:p-8 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10"
+                className="flex flex-col gap-4 p-6 md:p-8 rounded-2xl bg-white/8 md:bg-white/5 md:backdrop-blur-md border border-white/10"
               >
                 {status === "success" && (
                   <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-sm flex items-center gap-2">
