@@ -233,11 +233,12 @@ function Navbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            // Zamiast: initial={{ opacity: 0, y: 50 }}
-            // Zmień na mniejszą wartość (tylko delikatny efekt), która nie rozbije układu:
-            initial={{ opacity: 0, y: 15 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            // ZMIANA TUTAJ: dodajemy z-50 i pełne, solidne tło bg-card (bez /95), żeby nic pod spodem go nie blokowało
+            className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => (
@@ -941,11 +942,12 @@ function ContactSection() {
       />
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 w-full relative z-10">
+        {/* KROK 2: TUTAJ ZMIENIASZ PARAMETRY INITIAL I ANIMATE */}
         <motion.div
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="flex flex-col gap-10"
+          initial={{ opacity: 0, y: 15 }} // Zmienione z 50 na 15
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }} // Zmienione z 50 na 15
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-6xl mx-auto px-4"
         >
           <motion.div variants={fadeInUp} className="text-center">
             <span className="inline-flex items-center gap-2 text-xs tracking-widest text-cyan-400 uppercase font-semibold mb-4">
