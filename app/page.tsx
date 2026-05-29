@@ -187,8 +187,12 @@ function Navbar() {
 
   const scrollTo = (id: string | null) => {
     if (id) {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      window.history.replaceState(null, "", `#${id}`);
+      const el = document.getElementById(id);
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top, behavior: "smooth" });
+        window.history.replaceState(null, "", `#${id}`);
+      }
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
       window.history.pushState(null, "", window.location.pathname);
