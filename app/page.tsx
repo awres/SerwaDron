@@ -561,15 +561,30 @@ function PortfolioSection() {
     {
       type: "video",
       src: "/videos/dron.mp4",
+      id: "prezentacja-posiadlosci",
       title: "Prezentacja posiadłości",
       cat: "Nieruchomości",
     },
-    { title: "Festiwal muzyczny", cat: "Eventy" },
+    {
+      type: "video",
+      src: "https://pub-dd1fd6ef6ef2412bab111c025eafe84d.r2.dev/Bozecialolgota2026mp4.mp4",
+      id: "boze-cialo",
+      title: "Boże Ciało 2026",
+      cat: "Eventy",
+    },
     { title: "Górski szlak", cat: "Krajobraz" },
     { title: "Nowoczesna willa", cat: "Nieruchomości" },
     { title: "Wesele w plenerze", cat: "Eventy" },
     { title: "Miejska panorama", cat: "Krajobraz" },
   ];
+
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    const item = items.find(
+      (i) => i.id === hash && i.type === "video" && i.src,
+    );
+    if (item && item.src) openVideoModal(item.src);
+  }, []);
 
   const gradients = [
     "from-teal-600/40",
@@ -578,6 +593,7 @@ function PortfolioSection() {
     "from-purple-600/40",
     "from-pink-600/40",
     "from-cyan-600/40",
+    "from-rose-600/40",
   ];
 
   return (
@@ -635,6 +651,7 @@ function PortfolioSection() {
               {items.map((item, idx) => (
                 <motion.div
                   key={idx}
+                  id={item.id}
                   variants={v.fadeInUp}
                   className={`border border-white/10 rounded-2xl relative overflow-hidden bg-linear-to-b ${gradients[idx]} to-card p-5 h-36 md:h-44 flex flex-col justify-end group cursor-pointer hover:border-cyan-400/50 transition-colors duration-200`}
                   onClick={() =>
@@ -676,7 +693,6 @@ function PortfolioSection() {
                 </motion.div>
               ))}
             </div>
-
             <motion.div variants={v.fadeInUp} className="text-center">
               <a
                 href="#kontakt"
