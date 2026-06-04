@@ -569,7 +569,7 @@ function PortfolioSection() {
       type: "video",
       src: "https://pub-dd1fd6ef6ef2412bab111c025eafe84d.r2.dev/Bozecialolgota2026mp4.mp4",
       id: "boze-cialo",
-      title: "Boże Ciało 2026",
+      title: "Boże Ciało 2026 Lgota",
       cat: "Eventy",
     },
     { title: "Górski szlak", cat: "Krajobraz" },
