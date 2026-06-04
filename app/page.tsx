@@ -22,6 +22,7 @@ import {
   Sparkles,
   X,
   Maximize2,
+  Volume,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -99,10 +100,12 @@ function VideoModal({
   isOpen,
   onClose,
   src,
+  volume,
 }: {
   isOpen: boolean;
   onClose: () => void;
   src: string;
+  volume?: number; // 1. Dodaliśmy typ dla volume
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -122,9 +125,11 @@ function VideoModal({
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (isOpen && videoRef.current) videoRef.current.volume = 0.02;
-  }, [isOpen, src]);
-
+    if (isOpen && videoRef.current) {
+      // 2. Zmieniliśmy item?.volume na samo przekazane volume
+      videoRef.current.volume = volume ?? 0.02;
+    }
+  }, [isOpen, src, volume]); // 3. Poprawiliśmy zależności efektu
   return (
     <AnimatePresence>
       {isOpen && (
@@ -571,6 +576,7 @@ function PortfolioSection() {
       id: "boze-cialo",
       title: "Boże Ciało 2026 Lgota",
       cat: "Eventy",
+      volume: 0.7,
     },
     { title: "Górski szlak", cat: "Krajobraz" },
     { title: "Nowoczesna willa", cat: "Nieruchomości" },
