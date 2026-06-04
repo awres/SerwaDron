@@ -569,6 +569,7 @@ function PortfolioSection() {
       id: "prezentacja-posiadlosci",
       title: "Prezentacja posiadłości",
       cat: "Nieruchomości",
+      volume: 1,
     },
     {
       type: "video",
