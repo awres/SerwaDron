@@ -127,7 +127,7 @@ function VideoModal({
   useEffect(() => {
     if (isOpen && videoRef.current) {
       // 2. Zmieniliśmy item?.volume na samo przekazane volume
-      videoRef.current.volume = volume ?? 0.02;
+      videoRef.current.volume = volume ?? 0.5;
     }
   }, [isOpen, src, volume]); // 3. Poprawiliśmy zależności efektu
   return (
