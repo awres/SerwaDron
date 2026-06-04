@@ -9,9 +9,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "SerwaDron - Profesjonalne uslugi dronowe",
+  title: "SerwaDron - Profesjonalne usługi dronowe",
   description:
-    "Profesjonalne ujecia lotnicze dla nieruchomosci, eventow i projektow kreatywnych. Fotografia i filmowanie dronem DJI Mini 3 Pro.",
+    "Profesjonalne ujęcia lotnicze dla nieruchomości, eventów i projektów kreatywnych. Fotografia i filmowanie dronem DJI Mini 3 Pro.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -133,7 +133,7 @@ function VideoModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 modal-backdrop bg-black/80"
+          className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8 modal-backdrop bg-black/80"
           onClick={onClose}
         >
           <motion.div
@@ -297,7 +297,7 @@ function HeroSection() {
   }, []);
 
   return (
-    <section className="h-screen min-h-[600px] w-full relative flex flex-col justify-center overflow-hidden">
+    <section className="h-screen min-h-150 w-full relative flex flex-col justify-center overflow-hidden">
       <div className="absolute inset-0">
         <Image
           src="/images/bg-hero.jpg"
@@ -567,7 +567,7 @@ function PortfolioSection() {
     },
     {
       type: "video",
-      src: "https://pub-dd1fd6ef6ef2412bab111c025eafe84d.r2.dev/Bozecialolgota2026mp4.mp4",
+      src: "https://pub-dd1fd6ef6ef2412bab111c025eafe84d.r2.dev/Bozecialolgota2.mp4",
       id: "boze-cialo",
       title: "Boże Ciało 2026 Lgota",
       cat: "Eventy",
@@ -662,6 +662,7 @@ function PortfolioSection() {
                 >
                   {item.type === "video" && item.src && (
                     <video
+                      key={item.src}
                       src={item.src}
                       autoPlay
                       loop
@@ -795,7 +796,7 @@ function EquipmentSection() {
             <div className="grid grid-cols-2 gap-2">
               {features.map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm">
-                  <Check className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span className="text-white/80">{feature}</span>
                 </div>
               ))}
