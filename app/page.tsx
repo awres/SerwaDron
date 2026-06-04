@@ -572,7 +572,7 @@ function PortfolioSection() {
     },
     {
       type: "video",
-      src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      src: "https://pub-dd1fd6ef6ef2412bab111c025eafe84d.r2.dev/Bozecialolgota2.mp4",
       id: "boze-cialo",
       title: "Boże Ciało 2026 Lgota",
       cat: "Eventy",
