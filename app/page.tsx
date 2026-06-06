@@ -7,6 +7,8 @@ import {
   AnimatePresence,
   Variants,
   useReducedMotion,
+  useScroll,
+  useSpring,
 } from "framer-motion";
 import {
   ArrowRight,
@@ -23,6 +25,8 @@ import {
   X,
   Maximize2,
   Volume,
+  ArrowUpRight,
+  Menu,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -176,102 +180,145 @@ function VideoModal({
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null); // ref na WEWNĘTRZNYM pasku, nie na <nav>
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 30,
+    restDelta: 0.001,
+  });
 
   const navItems = [
     { label: "Usługi", id: "uslugi" },
     { label: "Portfolio", id: "portfolio" },
     { label: "Sprzęt", id: "sprzet" },
-    { label: "Kontakt", id: "kontakt" },
   ];
 
+  // stan scrolla
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // śledzenie aktywnej sekcji
+  useEffect(() => {
+    const sections = [...navItems, { id: "kontakt" }]
+      .map((item) => document.getElementById(item.id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.25, 0.5, 1] },
+    );
+
+    sections.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
+
+  // blokada scrolla przy otwartym menu mobilnym
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
+
   const scrollTo = (id: string | null) => {
-    if (id) {
-      const el = document.getElementById(id);
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top, behavior: "smooth" });
-        window.history.replaceState(null, "", `#${id}`);
-      }
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      window.history.pushState(null, "", window.location.pathname);
-    }
-    setIsMenuOpen(false);
+    setIsMenuOpen(false); // najpierw zamknij menu (zdejmuje overflow:hidden)
+
+    // poczekaj aż body znów będzie scrollowalne, dopiero potem scrolluj
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (id) {
+          const el = document.getElementById(id);
+          if (el) {
+            const navHeight =
+              navRef.current?.getBoundingClientRect().height ?? 64;
+            const offset = navHeight - 60;
+            const top =
+              el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top, behavior: "smooth" });
+            window.history.replaceState(null, "", `#${id}`);
+          }
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          window.history.pushState(null, "", window.location.pathname);
+        }
+      }, 60);
+    });
   };
 
   return (
     <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4"
+      initial={{ y: -110, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-3 md:pt-4"
     >
       <div className="max-w-6xl mx-auto">
-        <div
-          className={`flex items-center justify-between px-6 py-3 rounded-2xl transition-all duration-500 ${
+        <motion.div
+          ref={navRef}
+          animate={{
+            paddingTop: scrolled ? 10 : 14,
+            paddingBottom: scrolled ? 10 : 14,
+          }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className={`relative flex items-center justify-between overflow-hidden rounded-2xl px-4 md:px-6 transition-[background,border,box-shadow,backdrop-filter] duration-500 ${
             scrolled
-              ? "bg-card/95 md:bg-card/80 md:backdrop-blur-xl border border-border shadow-2xl"
-              : "bg-transparent"
+              ? "bg-card/70 border border-border/80 shadow-2xl shadow-black/40 backdrop-blur-xl"
+              : "bg-transparent border border-transparent"
           }`}
         >
+          {/* pasek postępu scrolla */}
+          <motion.div
+            style={{ scaleX: progress }}
+            className="absolute inset-x-0 bottom-0 h-px origin-left bg-linear-to-r from-primary via-cyan-400 to-primary"
+          />
+
+          {/* logo */}
           <a
             href="/"
             onClick={(e) => {
               e.preventDefault();
               scrollTo(null);
             }}
-            className="text-xl font-bold tracking-tight cursor-pointer text-foreground select-none"
-            style={{ fontFamily: "var(--font-heading)" }}
+            className="group flex items-center gap-2.5 select-none cursor-pointer"
           >
-            SerwaDron<span className="text-primary">.</span>
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/30">
+              <span className="absolute h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_2px] shadow-primary/60" />
+              <motion.span
+                className="absolute inset-0 rounded-lg ring-1 ring-primary/40"
+                animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{
+                  duration: 2.4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </span>
+            <span
+              className="text-lg font-bold tracking-tight text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              SerwaDron<span className="text-primary">.</span>
+            </span>
           </a>
 
-          <div className="hidden md:flex items-center gap-8">
-            {navItems.map((item, i) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollTo(item.id);
-                }}
-                className={`text-sm font-medium ${
-                  i === 3
-                    ? "bg-primary text-primary-foreground px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all duration-300"
-                    : "text-foreground/70 hover:text-foreground transition-colors duration-300"
-                } cursor-pointer`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-
-          <button
-            className="md:hidden text-sm font-medium px-4 py-2 rounded-xl bg-secondary text-foreground"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? "Zamknij" : "Menu"}
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.15 }}
-            className="md:hidden mt-2 mx-4 p-4 rounded-2xl bg-card border border-border z-50 relative"
-          >
-            <div className="flex flex-col gap-1">
-              {navItems.map((item) => (
+          {/* linki desktop */}
+          <div className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
                 <a
                   key={item.id}
                   href={`#${item.id}`}
@@ -279,13 +326,140 @@ function Navbar() {
                     e.preventDefault();
                     scrollTo(item.id);
                   }}
-                  className="text-base py-3 px-4 rounded-xl hover:bg-secondary text-foreground block w-full active:bg-secondary"
+                  className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-300 cursor-pointer ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-foreground/60 hover:text-foreground"
+                  }`}
                 >
+                  {isActive && (
+                    <motion.span
+                      layoutId="nav-pill"
+                      className="absolute inset-0 -z-10 rounded-lg bg-secondary"
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 32,
+                      }}
+                    />
+                  )}
                   {item.label}
                 </a>
-              ))}
-            </div>
-          </motion.div>
+              );
+            })}
+          </div>
+
+          {/* CTA desktop */}
+          <div className="hidden md:block">
+            <a
+              href="#kontakt"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo("kontakt");
+              }}
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40 cursor-pointer"
+            >
+              <span className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+              Kontakt
+              <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </a>
+          </div>
+
+          {/* przełącznik mobile */}
+          <button
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? "Zamknij menu" : "Otwórz menu"}
+            aria-expanded={isMenuOpen}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {isMenuOpen ? (
+                <motion.span
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X className="h-5 w-5" />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="menu"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Menu className="h-5 w-5" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+        </motion.div>
+      </div>
+
+      {/* menu mobile */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="md:hidden fixed inset-0 -z-10 bg-background/60 backdrop-blur-sm"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="md:hidden relative mx-4 mt-2 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl shadow-black/50 backdrop-blur-xl"
+            >
+              <div className="flex flex-col gap-1">
+                {navItems.map((item, i) => {
+                  const isActive = activeSection === item.id;
+                  return (
+                    <motion.a
+                      key={item.id}
+                      href={`#${item.id}`}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 + i * 0.05 }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollTo(item.id);
+                      }}
+                      className={`flex items-center justify-between rounded-xl px-4 py-3 text-base font-medium transition-colors ${
+                        isActive
+                          ? "bg-secondary text-foreground"
+                          : "text-foreground/70 hover:bg-secondary/60 hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                      <ArrowUpRight className="h-4 w-4 opacity-50" />
+                    </motion.a>
+                  );
+                })}
+                <motion.a
+                  href="#kontakt"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 + navItems.length * 0.05 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo("kontakt");
+                  }}
+                  className="mt-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25"
+                >
+                  Kontakt
+                  <ArrowUpRight className="h-4 w-4" />
+                </motion.a>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </motion.nav>
